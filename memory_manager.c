@@ -5,21 +5,23 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdalign.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #define MM_MAGIC 0xC0FFEE42u
 #define ALIGNMENT ((size_t)alignof(max_align_t))
 
 typedef struct block_header {
-    size_t size;                 //payload-storlek i bytes
-    int    free;                 //1 = fri, 0 = allokerad
-    struct block_header* next;   //nästa block i poolen
-    struct block_header* prev;   //föregående block i poolen
-    uint32_t magic;              //enkel korruptions-/valideringskontroll
+    size_t size;                 // payload-storlek i bytes
+    int    free;                 // 1 = fri, 0 = allokerad
+    struct block_header* next;   // nästa block i poolen
+    struct block_header* prev;   // föregående block i poolen
+    uint32_t magic;              // enkel korruptions-/valideringskontroll
 } block_header_t;
 
-static block_header_t* g_head = NULL;      //första blocket i poolen
-static unsigned char* pool_start = NULL;   //poolens råa startadress
-static size_t pool_bytes = 0;              //totalt antal bytes i poolen
+static block_header_t* g_head = NULL;      // första blocket i poolen
+static unsigned char* pool_start = NULL;   // poolens råa startadress (mmap)
+static size_t pool_bytes = 0;              // totalt antal bytes i poolen
 
 /* slår ihop ett fritt block med fria grannar */
 static block_header_t* coalesce(block_header_t* b) {
@@ -65,7 +67,9 @@ static inline size_t align_up(size_t n) {
 
 /* kollar om pekaren ligger i poolen */
 static inline int ptr_in_pool(const void* p) {
-    return pool_start && p >= (void*)pool_start && p < (void*)(pool_start + pool_bytes);
+    return pool_start &&
+           (const unsigned char*)p >= pool_start &&
+           (const unsigned char*)p <  (pool_start + pool_bytes);
 }
 
 /* startar poolen och skapar ett stort fritt block */
@@ -78,11 +82,15 @@ void mem_init(size_t size) {
                 sizeof(block_header_t) + ALIGNMENT);
         return;
     }
-    pool_start = (unsigned char*)malloc(size);
-    if (!pool_start) {
-        fprintf(stderr, "mem_init: malloc(%zu) failed\n", size);
+
+    // allocate pool with mmap instead of malloc
+    void* mapping = mmap(NULL, size, PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (mapping == MAP_FAILED) {
+        perror("mem_init: mmap failed");
         return;
     }
+    pool_start = (unsigned char*)mapping;
     pool_bytes = size;
 
     g_head = (block_header_t*)pool_start;
@@ -110,7 +118,7 @@ void* mem_alloc(size_t size) {
             return (void*)(b + 1);
         }
     }
-    return NULL; //ingen plats
+    return NULL; // ingen plats
 }
 
 /* frigör block och försöker slå ihop med grannar */
@@ -141,7 +149,7 @@ void mem_free(void* block) {
     (void)coalesce(b);
 }
 
-/* ändrar storlek: krymper, växer om möjligt eller flyttar och kopierar */
+/* ändrar storlek */
 void* mem_resize(void* block, size_t size) {
     if (!pool_start) {
         fprintf(stderr, "mem_resize: pool not initialized\n");
@@ -192,7 +200,9 @@ void* mem_resize(void* block, size_t size) {
 /* stänger poolen och nollställer allt */
 void mem_deinit(void) {
     if (pool_start) {
-        free(pool_start);
+        if (munmap(pool_start, pool_bytes) != 0) {
+            perror("mem_deinit: munmap failed");
+        }
     }
     pool_start = NULL;
     pool_bytes = 0;
