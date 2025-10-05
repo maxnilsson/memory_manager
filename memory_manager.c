@@ -7,7 +7,8 @@
 #include <stdalign.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <dlfcn.h>   // dlsym RTLD_NEXT
+#include <dlfcn.h>
+#define _GNU_SOURCE
 
 #define MM_MAGIC 0xC0FFEE42u
 #define ALIGNMENT ((size_t)alignof(max_align_t))
@@ -341,3 +342,4 @@ void* calloc(size_t nmemb, size_t size) {
     g_in_hook = 0;
     return ret;
 }
+
