@@ -1,14 +1,30 @@
 CC=gcc
-CFLAGS=-Wall -fPIC
+CFLAGS=-Wall -fPIC -g
 LDFLAGS=-shared -ldl
 
-all: libmymalloc.so
+all: libmymalloc.so test_memory_manager test_linked_list
 
+# ------------------------
+# Bygg vårt preload-bibliotek
+# ------------------------
 libmymalloc.so: memory_manager.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 memory_manager.o: memory_manager.c memory_manager.h
 	$(CC) $(CFLAGS) -c memory_manager.c -o memory_manager.o
 
+# ------------------------
+# Testprogram för memory_manager
+# ------------------------
+test_memory_manager: test_memory_manager.c memory_manager.h
+	$(CC) $(CFLAGS) -o $@ test_memory_manager.c
+
+# ------------------------
+# Testprogram för linked_list
+# ------------------------
+test_linked_list: test_linked_list.c linked_list.c linked_list.h
+	$(CC) $(CFLAGS) -o $@ test_linked_list.c linked_list.c
+
+# ------------------------
 clean:
 	rm -f *.o libmymalloc.so test_memory_manager test_linked_list
