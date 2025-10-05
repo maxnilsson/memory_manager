@@ -99,6 +99,7 @@ void mem_init(size_t size) {
     g_head->next = NULL;
     g_head->prev = NULL;
     g_head->magic = MM_MAGIC;
+}  // <-- viktig! avslutar mem_init
 
 /* allokerar 'size' bytes från poolen */
 void* mem_alloc(size_t size) {
@@ -207,6 +208,12 @@ void mem_deinit(void) {
     pool_bytes = 0;
     g_head = NULL;
 }
+
+/* ger totala poolstorleken i bytes */
+size_t mem_total_size(void) {
+    return pool_bytes;
+}
+
 /* ger antal lediga bytes i poolen */
 size_t mem_free_bytes(void) {
     size_t sum = 0;
@@ -224,4 +231,3 @@ size_t mem_largest_free_block(void) {
     }
     return best;
 }
-
