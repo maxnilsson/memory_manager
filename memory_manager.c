@@ -83,13 +83,13 @@ void mem_init(size_t size) {
         return;
     }
 
-    // allocate pool with mmap instead of malloc
     void* mapping = mmap(NULL, size, PROT_READ | PROT_WRITE,
                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (mapping == MAP_FAILED) {
         perror("mem_init: mmap failed");
         return;
     }
+
     pool_start = (unsigned char*)mapping;
     pool_bytes = size;
 
@@ -99,7 +99,6 @@ void mem_init(size_t size) {
     g_head->next = NULL;
     g_head->prev = NULL;
     g_head->magic = MM_MAGIC;
-}
 
 /* allokerar 'size' bytes från poolen */
 void* mem_alloc(size_t size) {
@@ -208,10 +207,6 @@ void mem_deinit(void) {
     pool_bytes = 0;
     g_head = NULL;
 }
-
-/* ger totala poolstorleken i bytes */
-size_t mem_total_size(void) { return pool_bytes; }
-
 /* ger antal lediga bytes i poolen */
 size_t mem_free_bytes(void) {
     size_t sum = 0;
@@ -229,3 +224,4 @@ size_t mem_largest_free_block(void) {
     }
     return best;
 }
+
