@@ -1,53 +1,14 @@
-# Compiler and Linking Variables
-CC = gcc
-CFLAGS = -Wall -fPIC
-LIB_NAME = libmemory_manager.so
+CC=gcc
+CFLAGS=-Wall -fPIC
+LDFLAGS=-shared -ldl
 
-# Source and Object Files
-SRC = memory_manager.c
-OBJ = $(SRC:.c=.o)
+all: libmymalloc.so
 
-# Default target
-all: gitinfo mmanager list test_mmanager test_list
+libmymalloc.so: memory_manager.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-# Rule to create the dynamic library
-$(LIB_NAME): $(OBJ)
-	$(CC) -shared -o $@ $(OBJ)
+memory_manager.o: memory_manager.c memory_manager.h
+	$(CC) $(CFLAGS) -c memory_manager.c -o memory_manager.o
 
-# Rule to compile source files into object files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-gitinfo:
-	@echo "const char *git_date = \"$(GIT_DATE)\";" > gitdata.h
-	@echo "const char *git_sha = \"$(GIT_COMMIT)\";" >> gitdata.h
-
-
-# Build the memory manager
-mmanager: $(LIB_NAME)
-
-# Build the linked list
-list: linked_list.o
-
-# Test target to run the memory manager test program
-test_mmanager: $(LIB_NAME)
-	$(CC) $(CFLAGS) -o test_memory_manager test_memory_manager.c -L. -lmemory_manager
-
-# Test target to run the linked list test program
-test_list: $(LIB_NAME) linked_list.o
-	$(CC) $(CFLAGS) -o test_linked_list linked_list.c test_linked_list.c -L. -lmemory_manager
-
-#run tests
-run_tests:n run_test_mmanager run_test_list
-
-# run test cases for the memory manager
-run_test_mmanager:
-	./test_memory_manager
-
-# run test cases for the linked list
-run_test_list:
-	./test_linked_list
-
-# Clean target to clean up build files
 clean:
-	rm -f $(OBJ) $(LIB_NAME) test_memory_manager test_linked_list linked_list.o
+	rm -f *.o libmymalloc.so test_memory_manager test_linked_list
