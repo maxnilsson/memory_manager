@@ -16,8 +16,8 @@ memory_manager.o: memory_manager.c memory_manager.h
 # ------------------------
 # Testprogram för memory_manager
 # ------------------------
-test_memory_manager: test_memory_manager.c memory_manager.h
-	$(CC) $(CFLAGS) -o $@ test_memory_manager.c
+test_memory_manager: test_memory_manager.c memory_manager.o
+	$(CC) $(CFLAGS) -o $@ test_memory_manager.c memory_manager.o
 
 # ------------------------
 # Testprogram för linked_list
